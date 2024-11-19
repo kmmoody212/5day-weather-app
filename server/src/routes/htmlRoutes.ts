@@ -5,7 +5,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const router = Router();
 
-console.log(__dirname); // DELETE THIS - logging to console just to be able to run in terminal ////////////////////
+console.log(__dirname); // DELETE THIS - logging to be able to run in terminal ////////////////////
 // TODO: Define route to serve index.html
 
 export default router;
