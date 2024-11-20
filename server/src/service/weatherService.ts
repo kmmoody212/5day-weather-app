@@ -1,9 +1,7 @@
-import dotenv from "dotenv";
-dotenv.config();
-import dayjs, { type Dayjs } from "dayjs";
+import { type Dayjs } from "dayjs";
 
 // Defined a class for the Weather object
-class Weather {
+export class Weather {
   city: string;
   date: Dayjs | string;
   icon: string;
@@ -32,26 +30,68 @@ class Weather {
 }
 
 // WeatherService class
-class WeatherService {
+export class WeatherService {
   // Defines the baseURL, API key, and city name properties
   private baseURL: string;
   private apiKey: string;
-  private city = "";
 
-  constructor() {
-    this.baseURL = process.env.API_BASE_URL || "";
-    this.apiKey = process.env.API_KEY || "";
+  constructor(baseURL: string, apiKey: string) {
+    this.baseURL = baseURL;
+    this.apiKey = apiKey;
+    // this.baseURL = process.env.API_BASE_URL || "";
+    // this.apiKey = process.env.API_KEY || "";
   }
   // TODO: Create buildWeatherQuery method
-  private buildWeatherQuery(city: Weather): string {}
+  buildWeatherQuery(city: string): string {
+    return `${this.baseURL}/data/2.5/forecast?q=${city}&appid=${this.apiKey}&units=imperial`;
+  }
   // TODO: Create fetchWeatherData method
-  private async fetchWeatherData(coordinates: Coordinates) {}
-  // TODO: Build parseCurrentWeather method
-  private parseCurrentWeather(response: any) {}
-  // TODO: Complete buildForecastArray method
-  private buildForecastArray(currentWeather: Weather, weatherData: any[]) {}
-  // TODO: Complete getWeatherForCity method
-  async getWeatherForCity(city: string) {}
-}
+  async fetchWeatherData(city: string): Promise<any> {
+    const response = await fetch(this.buildWeatherQuery(city));
+    return await response.json();
+  }
 
-export default new WeatherService();
+  // TODO: Build parseCurrentWeather method
+  parseCurrentWeather(data: any) {
+    const weather = data.list[0];
+    // console.log(weather);
+    const myWeather = new Weather(
+      data.city.name,
+      weather.dt_txt,
+      "",
+      "",
+      weather.main.temp,
+      weather.wind.speed,
+      weather.main.humidity
+    );
+    // console.log(myWeather);
+    return myWeather;
+  }
+
+  // TODO: Complete buildForecastArray method
+  buildForecastArray(data: any): Weather[] {
+    return data.list.slice(0, 5).map((weather: any) => {
+      const myWeather = new Weather(
+        data.city.name,
+        weather.dt_txt,
+        "",
+        "",
+        weather.main.temp,
+        weather.wind.speed,
+        weather.main.humidity
+      );
+      // console.log(myWeather);
+      return myWeather;
+    });
+  }
+
+  async getWeatherForCity(city: string): Promise<Weather> {
+    const data = await this.fetchWeatherData(city);
+    return this.parseCurrentWeather(data);
+  }
+
+  async getWeatherArrayForCity(city: string): Promise<Weather[]> {
+    const data = await this.fetchWeatherData(city);
+    return this.buildForecastArray(data);
+  }
+}
