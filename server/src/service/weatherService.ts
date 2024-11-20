@@ -2,14 +2,6 @@ import dotenv from "dotenv";
 dotenv.config();
 import dayjs, { type Dayjs } from "dayjs";
 
-// Interface for the Coordinates object
-interface Coordinates {
-  name: string;
-  lat: number;
-  lon: number;
-  state: string;
-  country: string;
-}
 // Defined a class for the Weather object
 class Weather {
   city: string;
@@ -51,15 +43,15 @@ class WeatherService {
     this.apiKey = process.env.API_KEY || "";
   }
   // TODO: Create buildWeatherQuery method
-  // private buildWeatherQuery(coordinates: Coordinates): string {}
+  private buildWeatherQuery(city: Weather): string {}
   // TODO: Create fetchWeatherData method
-  // private async fetchWeatherData(coordinates: Coordinates) {}
+  private async fetchWeatherData(coordinates: Coordinates) {}
   // TODO: Build parseCurrentWeather method
-  // private parseCurrentWeather(response: any) {}
+  private parseCurrentWeather(response: any) {}
   // TODO: Complete buildForecastArray method
-  // private buildForecastArray(currentWeather: Weather, weatherData: any[]) {}
+  private buildForecastArray(currentWeather: Weather, weatherData: any[]) {}
   // TODO: Complete getWeatherForCity method
-  // async getWeatherForCity(city: string) {}
+  async getWeatherForCity(city: string) {}
 }
 
 export default new WeatherService();
