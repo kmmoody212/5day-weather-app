@@ -1,23 +1,46 @@
-import { Router } from "express";
-import dotenv from "dotenv";
-import { WeatherService } from "../../service/weatherService.js";
-dotenv.config();
+import { Router, type Request, type Response } from "express";
 const router = Router();
 
-// TODO: POST Request with city name to retrieve weather data
-const API_KEY: string = process.env.API_KEY as string;
-const API_BASE_URL: string = process.env.API_BASE_URL as string;
-router.post("/data/:city", async (req, res) => {
-  const service = new WeatherService(API_BASE_URL, API_KEY);
-  const weather = await service.getWeatherArrayForCity(req.params.city);
-  console.log(weather);
-  res.json(weather);
+import HistoryService from "../../service/historyService.js";
+import WeatherService from "../../service/weatherService.js";
+
+router.post("/", (req: Request, res: Response) => {
+  try {
+    const cityName = req.body.cityName;
+
+    WeatherService.getWeatherForCity(cityName).then((data) => {
+      HistoryService.addCity(cityName);
+
+      res.json(data);
+    });
+  } catch (error) {
+    res.status(500).json(error);
+  }
 });
 
-// TODO: GET search history
-router.get("/history", async (_req, _res) => {});
+router.get("/history", async (_req: Request, res: Response) => {
+  HistoryService.getCities()
+    .then((data) => {
+      return res.json(data);
+    })
+    .catch((err) => {
+      res.status(500).json(err);
+    });
+});
 
-// * BONUS TODO: DELETE city from search history
-router.delete("/history/:id", async (_req, _res) => {});
+// * BONUS
+router.delete("/history/:id", async (req: Request, res: Response) => {
+  try {
+    if (!req.params.id) {
+      res.status(400).json({ error: "City ID is required" });
+      return;
+    }
+
+    await HistoryService.removeCity(req.params.id);
+    res.json({ success: "Removed city from search history" });
+  } catch (error) {
+    res.status(500).json(error);
+  }
+});
 
 export default router;

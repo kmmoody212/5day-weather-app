@@ -1,97 +1,132 @@
-import { type Dayjs } from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
+import dotenv from "dotenv";
+dotenv.config();
 
-// Defined a class for the Weather object
-export class Weather {
+class Weather {
   city: string;
   date: Dayjs | string;
-  icon: string;
-  iconDescription: string;
   tempF: number;
   windSpeed: number;
   humidity: number;
-
+  icon: string;
+  iconDescription: string;
   constructor(
     city: string,
     date: Dayjs | string,
-    icon: string,
-    iconDescription: string,
     tempF: number,
     windSpeed: number,
-    humidity: number
+    humidity: number,
+    icon: string,
+    iconDescription: string
   ) {
     this.city = city;
     this.date = date;
-    this.icon = icon;
-    this.iconDescription = iconDescription;
     this.tempF = tempF;
     this.windSpeed = windSpeed;
     this.humidity = humidity;
+    this.icon = icon;
+    this.iconDescription = iconDescription;
   }
 }
 
-// WeatherService class
-export class WeatherService {
-  // Defines the baseURL, API key, and city name properties
-  private baseURL: string;
-  private apiKey: string;
+class WeatherService {
+  private baseURL?: string;
 
-  constructor(baseURL: string, apiKey: string) {
-    this.baseURL = baseURL;
-    this.apiKey = apiKey;
-    // this.baseURL = process.env.API_BASE_URL || "";
-    // this.apiKey = process.env.API_KEY || "";
-  }
-  // TODO: Create buildWeatherQuery method
-  buildWeatherQuery(city: string): string {
-    return `${this.baseURL}/data/2.5/forecast?q=${city}&appid=${this.apiKey}&units=imperial`;
-  }
-  // TODO: Create fetchWeatherData method
-  async fetchWeatherData(city: string): Promise<any> {
-    const response = await fetch(this.buildWeatherQuery(city));
-    return await response.json();
+  private apiKey?: string;
+
+  private city = "";
+
+  constructor() {
+    this.baseURL = process.env.API_BASE_URL || "";
+
+    this.apiKey = process.env.API_KEY || "";
   }
 
-  // TODO: Build parseCurrentWeather method
-  parseCurrentWeather(data: any) {
-    const weather = data.list[0];
-    // console.log(weather);
-    const myWeather = new Weather(
-      data.city.name,
-      weather.dt_txt,
-      "",
-      "",
-      weather.main.temp,
-      weather.wind.speed,
-      weather.main.humidity
-    );
-    // console.log(myWeather);
-    return myWeather;
+  private buildWeatherQuery(city: string): string {
+    const weatherQuery = `${this.baseURL}/data/2.5/forecast?q=${city}&units=imperial&appid=${this.apiKey}`;
+    return weatherQuery;
   }
 
-  // TODO: Complete buildForecastArray method
-  buildForecastArray(data: any): Weather[] {
-    return data.list.slice(0, 5).map((weather: any) => {
-      const myWeather = new Weather(
-        data.city.name,
-        weather.dt_txt,
-        "",
-        "",
-        weather.main.temp,
-        weather.wind.speed,
-        weather.main.humidity
+
+  private async fetchWeatherData(city: string) {
+    try {
+      const response = await fetch(this.buildWeatherQuery(city)).then(
+        (res) => res.json()
       );
-      // console.log(myWeather);
-      return myWeather;
+      if (!response) {
+        throw new Error("Weather data not found");
+      }
+
+      const currentWeather: Weather = this.parseCurrentWeather(
+        response.list[0]
+      );
+
+      const forecast: Weather[] = this.buildForecastArray(
+        currentWeather,
+        response.list
+      );
+      return forecast;
+    } catch (error: any) {
+      console.error(error);
+      return error;
+    }
+  }
+
+  private parseCurrentWeather(response: any) {
+    const parsedDate = dayjs.unix(response.dt).format("M/D/YYYY");
+
+    const currentWeather = new Weather(
+      this.city,
+      parsedDate,
+      response.main.temp,
+      response.wind.speed,
+      response.main.humidity,
+      response.weather[0].icon,
+      response.weather[0].description || response.weather[0].main
+    );
+
+    return currentWeather;
+  }
+
+  private buildForecastArray(currentWeather: Weather, weatherData: any[]) {
+    const weatherForecast: Weather[] = [currentWeather];
+
+    const filteredWeatherData = weatherData.filter((data: any) => {
+      return data.dt_txt.includes("12:00:00");
     });
+
+    for (const day of filteredWeatherData) {
+      weatherForecast.push(
+        new Weather(
+          this.city,
+          dayjs.unix(day.dt).format("M/D/YYYY"),
+          day.main.temp,
+          day.wind.speed,
+          day.main.humidity,
+          day.weather[0].icon,
+          day.weather[0].description || day.weather[0].main
+        )
+      );
+    }
+
+    return weatherForecast;
   }
 
-  async getWeatherForCity(city: string): Promise<Weather> {
-    const data = await this.fetchWeatherData(city);
-    return this.parseCurrentWeather(data);
-  }
+  async getWeatherForCity(city: string) {
+    try {
+      this.city = city;
+    
+      if (city) {
+        const weather = await this.fetchWeatherData(city);
+        return weather;
+      }
 
-  async getWeatherArrayForCity(city: string): Promise<Weather[]> {
-    const data = await this.fetchWeatherData(city);
-    return this.buildForecastArray(data);
+      throw new Error("Weather data not found");
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
   }
 }
+
+export default new WeatherService();
